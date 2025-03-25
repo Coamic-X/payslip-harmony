@@ -7,6 +7,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { Eye, EyeOff } from 'lucide-react';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -26,6 +27,8 @@ const RegisterForm: React.FC<{ onSuccess?: () => void; onLoginClick: () => void 
 }) => {
   const { register } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -47,6 +50,14 @@ const RegisterForm: React.FC<{ onSuccess?: () => void; onLoginClick: () => void 
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
   };
 
   return (
@@ -102,12 +113,26 @@ const RegisterForm: React.FC<{ onSuccess?: () => void; onLoginClick: () => void 
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="••••••••" 
-                    type="password" 
-                    disabled={isLoading} 
-                    {...field} 
-                  />
+                  <div className="relative">
+                    <Input 
+                      placeholder="••••••••" 
+                      type={showPassword ? "text" : "password"} 
+                      disabled={isLoading} 
+                      {...field} 
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                      onClick={togglePasswordVisibility}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -121,12 +146,26 @@ const RegisterForm: React.FC<{ onSuccess?: () => void; onLoginClick: () => void 
               <FormItem>
                 <FormLabel>Confirm Password</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="••••••••" 
-                    type="password" 
-                    disabled={isLoading} 
-                    {...field} 
-                  />
+                  <div className="relative">
+                    <Input 
+                      placeholder="••••••••" 
+                      type={showConfirmPassword ? "text" : "password"} 
+                      disabled={isLoading} 
+                      {...field} 
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                      onClick={toggleConfirmPasswordVisibility}
+                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
