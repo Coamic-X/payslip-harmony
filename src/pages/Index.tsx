@@ -8,30 +8,44 @@ import MainLayout from '@/components/layout/MainLayout';
 import CompanyList from '@/components/company/CompanyList';
 import AddCompanyDialog from '@/components/company/AddCompanyDialog';
 import { Company } from '@/types/types';
-
-const STORAGE_KEY = 'payslip-manager-data';
+import { useAuth } from '@/contexts/AuthContext';
+import { Navigate } from 'react-router-dom';
 
 const Index = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
+  const { isAuthenticated, user } = useAuth();
   
-  // Load data from localStorage on initial render
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  // Load data from localStorage on initial render and when user changes
   useEffect(() => {
-    const savedData = localStorage.getItem(STORAGE_KEY);
-    if (savedData) {
-      try {
-        setCompanies(JSON.parse(savedData));
-      } catch (error) {
-        console.error('Failed to parse saved data:', error);
-        // If parsing fails, reset to default state
+    if (user) {
+      const storageKey = `payslip-manager-data-${user.id}`;
+      const savedData = localStorage.getItem(storageKey);
+      if (savedData) {
+        try {
+          setCompanies(JSON.parse(savedData));
+        } catch (error) {
+          console.error('Failed to parse saved data:', error);
+          // If parsing fails, reset to default state
+          setCompanies([]);
+        }
+      } else {
+        // If no data found for this user, start with empty array
         setCompanies([]);
       }
     }
-  }, []);
+  }, [user]);
   
-  // Save data to localStorage whenever companies change
+  // Save data to localStorage whenever companies change or user changes
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(companies));
-  }, [companies]);
+    if (user) {
+      const storageKey = `payslip-manager-data-${user.id}`;
+      localStorage.setItem(storageKey, JSON.stringify(companies));
+    }
+  }, [companies, user]);
   
   const handleAddCompany = (company: Company) => {
     setCompanies(prevCompanies => [...prevCompanies, company]);

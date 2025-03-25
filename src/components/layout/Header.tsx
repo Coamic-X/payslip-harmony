@@ -1,6 +1,8 @@
 
 import React from 'react';
 import { FileText } from 'lucide-react';
+import ThemeToggle from '../theme/ThemeToggle';
+import AuthDialog from '../auth/AuthDialog';
 
 const Header = () => {
   return (
@@ -13,6 +15,11 @@ const Header = () => {
           <h1 className="text-xl font-medium leading-none">Payslip Manager</h1>
           <p className="text-sm text-muted-foreground">Manage payslips across multiple companies</p>
         </div>
+      </div>
+      
+      <div className="flex items-center gap-3">
+        <ThemeToggle />
+        <AuthDialog />
       </div>
     </header>
   );
