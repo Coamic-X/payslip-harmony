@@ -25,7 +25,10 @@ const firebaseConfig = {
 };
 ```
 
-7. Create Firestore security rules to protect your data:
+7. Update Firestore security rules in the Firebase console:
+   - Go to Firestore Database
+   - Click on the "Rules" tab
+   - Replace the default rules with the following:
 
 ```
 rules_version = '2';
@@ -35,10 +38,15 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     match /companies/{companyId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow read, write: if request.auth != null;
     }
   }
 }
 ```
 
-These rules ensure that users can only access their own data.
+These rules ensure that:
+- Users can only access their own user documents
+- Authenticated users can read and write to company documents
+
+8. Click "Publish" to apply the new security rules
+

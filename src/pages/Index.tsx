@@ -72,8 +72,18 @@ const Index = () => {
         userId: user.id
       };
       
+      // Convert to a plain object that Firestore can handle
+      const companyData = {
+        id: company.id,
+        name: company.name,
+        color: company.color,
+        payslips: company.payslips,
+        createdAt: company.createdAt,
+        userId: user.id
+      };
+      
       // Add to Firestore
-      await setDoc(doc(db, 'companies', company.id), companyWithUser);
+      await setDoc(doc(db, 'companies', company.id), companyData);
       
       // Update local state
       setCompanies(prevCompanies => [...prevCompanies, companyWithUser]);
@@ -89,7 +99,9 @@ const Index = () => {
     
     try {
       // Update in Firestore
-      await updateDoc(doc(db, 'companies', updatedCompany.id), updatedCompany);
+      await updateDoc(doc(db, 'companies', updatedCompany.id), {
+        ...updatedCompany
+      });
       
       // Update local state
       setCompanies(prevCompanies => 
