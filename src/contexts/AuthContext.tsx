@@ -1,11 +1,29 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  User as FirebaseUser,
+  updateProfile
+} from 'firebase/auth';
+import { 
+  doc, 
+  setDoc, 
+  getDoc, 
+  collection, 
+  query, 
+  where, 
+  getDocs
+} from 'firebase/firestore';
+import { auth, db } from '../config/firebase';
 import { toast } from 'sonner';
 
 interface User {
   id: string;
-  email: string;
-  name: string;
+  email: string | null;
+  name: string | null;
 }
 
 interface AuthContextType {
@@ -18,87 +36,95 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Simple mock database for demo purposes
-const USERS_STORAGE_KEY = 'payslip-manager-users';
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    // Check for saved session on mount
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (error) {
-        console.error('Failed to parse saved user:', error);
-        localStorage.removeItem('currentUser');
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        setUser({
+          id: firebaseUser.uid,
+          email: firebaseUser.email,
+          name: firebaseUser.displayName
+        });
+      } else {
+        setUser(null);
       }
-    }
+      setLoading(false);
+    });
     
-    // Initialize users array if it doesn't exist
-    if (!localStorage.getItem(USERS_STORAGE_KEY)) {
-      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify([]));
-    }
+    return () => unsubscribe();
   }, []);
   
-  const getUsers = (): { id: string; email: string; name: string; password: string }[] => {
-    try {
-      return JSON.parse(localStorage.getItem(USERS_STORAGE_KEY) || '[]');
-    } catch (error) {
-      console.error('Failed to parse users:', error);
-      return [];
-    }
-  };
-  
   const login = async (email: string, password: string): Promise<void> => {
-    // Simple mock authentication
-    const users = getUsers();
-    const foundUser = users.find(u => u.email === email && u.password === password);
-    
-    if (foundUser) {
-      const { password: _, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
-      toast.success(`Welcome back, ${foundUser.name}!`);
-    } else {
-      toast.error('Invalid email or password');
-      throw new Error('Invalid email or password');
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
+      
+      if (firebaseUser) {
+        toast.success(`Welcome back, ${firebaseUser.displayName || 'User'}!`);
+      }
+    } catch (error: any) {
+      console.error('Login error:', error.message);
+      let errorMessage = 'An error occurred during sign in';
+      
+      if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+        errorMessage = 'Invalid email or password';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed login attempts. Please try again later';
+      }
+      
+      toast.error(errorMessage);
+      throw new Error(errorMessage);
     }
   };
   
   const register = async (name: string, email: string, password: string): Promise<void> => {
-    const users = getUsers();
-    
-    // Check if email already exists
-    if (users.some(u => u.email === email)) {
-      toast.error('Email already in use');
-      throw new Error('Email already in use');
+    try {
+      // Create user with email and password
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
+      
+      // Update profile with name
+      await updateProfile(firebaseUser, {
+        displayName: name
+      });
+      
+      // Create a user document in Firestore
+      await setDoc(doc(db, 'users', firebaseUser.uid), {
+        uid: firebaseUser.uid,
+        email: email,
+        name: name,
+        createdAt: new Date().toISOString()
+      });
+      
+      toast.success(`Welcome, ${name}!`);
+    } catch (error: any) {
+      console.error('Registration error:', error.message);
+      let errorMessage = 'An error occurred during registration';
+      
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'Email already in use';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'Password is too weak';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address';
+      }
+      
+      toast.error(errorMessage);
+      throw new Error(errorMessage);
     }
-    
-    // Create new user
-    const newUser = {
-      id: crypto.randomUUID(),
-      email,
-      name,
-      password
-    };
-    
-    // Save user to "database"
-    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify([...users, newUser]));
-    
-    // Log in the new user
-    const { password: _, ...userWithoutPassword } = newUser;
-    setUser(userWithoutPassword);
-    localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
-    
-    toast.success(`Welcome, ${name}!`);
   };
   
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('currentUser');
-    toast.info('You have been logged out');
+  const logout = async () => {
+    try {
+      await signOut(auth);
+      toast.info('You have been logged out');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error('Failed to log out');
+    }
   };
   
   return (
