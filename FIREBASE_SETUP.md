@@ -1,3 +1,4 @@
+
 # Firebase Setup Instructions
 
 This application uses Firebase for authentication and database functionality. To set it up properly, follow these steps:
@@ -51,12 +52,26 @@ These rules ensure that:
 
 # Cloudinary Setup Instructions
 
-This application uses Cloudinary for image storage. The app is already configured with the following settings:
+This application uses Cloudinary for image storage. The app is configured with the following settings:
 
 - Cloud name: dbpqkfw2x
 - API key: 695637838557724
+- API Secret: bYVJdeUK-7JrFtHxq8I9QyVimkg
 
-If you want to use your own Cloudinary account:
+To ensure Cloudinary uploads work properly, you'll need to:
+
+1. Create an upload preset in your Cloudinary Dashboard:
+   - Go to Settings > Upload
+   - Scroll down to "Upload presets"
+   - Create a new unsigned upload preset named "ml_default" or use an existing one
+   - If you create a custom preset, update the `uploadPreset` value in `src/config/cloudinary.ts`
+
+2. Configure CORS settings in your Cloudinary account:
+   - Go to Settings > Security
+   - In the CORS section, add your application domain (or * for testing)
+   - Make sure to allow the following HTTP methods: GET, POST, PUT
+
+If you want to use your own Cloudinary account instead:
 
 1. Create a Cloudinary account at [Cloudinary](https://cloudinary.com/)
 2. Go to your Cloudinary Dashboard
@@ -64,25 +79,12 @@ If you want to use your own Cloudinary account:
 4. Update the configuration in `src/config/cloudinary.ts`:
 
 ```typescript
-export const cloudinary = new Cloudinary({
-  cloud: {
-    cloudName: 'YOUR_CLOUD_NAME',
-  },
-  url: {
-    secure: true,
-  },
-});
+export const cloudinaryConfig = {
+  cloudName: 'YOUR_CLOUD_NAME',
+  apiKey: 'YOUR_API_KEY',
+  apiSecret: 'YOUR_API_SECRET',
+  uploadPreset: 'YOUR_UPLOAD_PRESET', 
+};
 ```
 
-5. Update the upload URL in `src/components/upload/FileUploader.tsx`:
-
-```typescript
-const response = await fetch(`https://api.cloudinary.com/v1_1/YOUR_CLOUD_NAME/upload`, {
-  // ... keep the rest of the code
-});
-```
-
-6. Create an upload preset in your Cloudinary Dashboard:
-   - Go to Settings > Upload
-   - Scroll down to "Upload presets"
-   - Create a new unsigned upload preset or use the default "ml_default"
+5. Update the FileUploader component to use your Cloudinary settings

@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { v4 as uuidv4 } from 'uuid';
@@ -7,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PayslipFile } from '@/types/types';
 import { toast } from 'sonner';
+import { cloudinaryConfig } from '@/config/cloudinary';
 
 interface FileUploaderProps {
   onUploadComplete: (files: PayslipFile[]) => void;
@@ -22,15 +22,25 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete, companyNa
     // Create a FormData object to send the file
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', 'ml_default'); // Use 'ml_default' or create a custom unsigned upload preset in Cloudinary
+    formData.append('upload_preset', cloudinaryConfig.uploadPreset);
+    formData.append('api_key', cloudinaryConfig.apiKey);
     formData.append('folder', `payslips/${companyName}`);
     
     try {
       // Upload to Cloudinary using their upload API
-      const response = await fetch(`https://api.cloudinary.com/v1_1/dbpqkfw2x/upload`, {
+      const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/upload`;
+      console.log('Uploading to:', uploadUrl);
+      
+      const response = await fetch(uploadUrl, {
         method: 'POST',
         body: formData,
       });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Cloudinary error response:', errorText);
+        throw new Error(`Upload failed with status: ${response.status} - ${errorText}`);
+      }
       
       const data = await response.json();
       
@@ -73,27 +83,37 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete, companyNa
         // Update progress based on current file index
         setUploadProgress(Math.round((i / totalFiles) * 90));
         
-        // Upload file to Cloudinary
-        const cloudinaryUrl = await uploadToCloudinary(file);
-        
-        // Create PayslipFile object with Cloudinary URL
-        const payslipFile: PayslipFile = {
-          id: uuidv4(),
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          uploadedAt: new Date().toISOString(),
-          url: cloudinaryUrl
-        };
-        
-        payslipFiles.push(payslipFile);
+        try {
+          // Upload file to Cloudinary
+          const cloudinaryUrl = await uploadToCloudinary(file);
+          
+          // Create PayslipFile object with Cloudinary URL
+          const payslipFile: PayslipFile = {
+            id: uuidv4(),
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            uploadedAt: new Date().toISOString(),
+            url: cloudinaryUrl
+          };
+          
+          payslipFiles.push(payslipFile);
+        } catch (uploadError) {
+          console.error('Upload error:', uploadError);
+          toast.error(`Failed to upload ${file.name}`);
+        }
       }
       
       // Finalize progress
       setUploadProgress(100);
       
-      // Pass the created PayslipFile objects to the parent component
-      onUploadComplete(payslipFiles);
+      if (payslipFiles.length > 0) {
+        // Pass the created PayslipFile objects to the parent component
+        onUploadComplete(payslipFiles);
+        toast.success(`${payslipFiles.length} file(s) uploaded successfully`);
+      } else {
+        setError('No files were uploaded successfully.');
+      }
       
       // Reset the uploader state
       setTimeout(() => {

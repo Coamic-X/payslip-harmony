@@ -1,7 +1,7 @@
 
 import { Cloudinary } from '@cloudinary/url-gen';
 
-// Initialize Cloudinary instance
+// Initialize Cloudinary instance with your credentials
 export const cloudinary = new Cloudinary({
   cloud: {
     cloudName: 'dbpqkfw2x',
@@ -10,5 +10,13 @@ export const cloudinary = new Cloudinary({
     secure: true, // https
   },
 });
+
+// Add API credentials for uploads
+export const cloudinaryConfig = {
+  cloudName: 'dbpqkfw2x',
+  apiKey: '695637838557724',
+  apiSecret: 'bYVJdeUK-7JrFtHxq8I9QyVimkg',
+  uploadPreset: 'ml_default', // Default unsigned upload preset
+};
 
 export default cloudinary;
