@@ -109,6 +109,7 @@ const Index = () => {
           company.id === updatedCompany.id ? updatedCompany : company
         )
       );
+      toast.success(`Company updated successfully`);
     } catch (error) {
       console.error('Error updating company:', error);
       toast.error('Failed to update company');
@@ -126,6 +127,7 @@ const Index = () => {
       setCompanies(prevCompanies => 
         prevCompanies.filter(company => company.id !== companyId)
       );
+      toast.success(`Company removed successfully`);
     } catch (error) {
       console.error('Error removing company:', error);
       toast.error('Failed to remove company');
@@ -180,7 +182,7 @@ const Index = () => {
           
           <div className="mt-8 flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <InfoIcon className="h-4 w-4" />
-            <p>Data is stored securely in Firebase</p>
+            <p>Data is stored securely in Firebase and images on Cloudinary</p>
           </div>
         </div>
       )}

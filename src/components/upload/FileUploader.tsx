@@ -6,6 +6,7 @@ import { Upload, FileWarning, AlertCircle, Loader2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PayslipFile } from '@/types/types';
+import { toast } from 'sonner';
 
 interface FileUploaderProps {
   onUploadComplete: (files: PayslipFile[]) => void;
@@ -17,7 +18,35 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete, companyNa
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   
-  const processFiles = useCallback((acceptedFiles: File[]) => {
+  const uploadToCloudinary = async (file: File): Promise<string> => {
+    // Create a FormData object to send the file
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'ml_default'); // Use 'ml_default' or create a custom unsigned upload preset in Cloudinary
+    formData.append('folder', `payslips/${companyName}`);
+    
+    try {
+      // Upload to Cloudinary using their upload API
+      const response = await fetch(`https://api.cloudinary.com/v1_1/dbpqkfw2x/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error.message);
+      }
+      
+      // Return the secure URL of the uploaded file
+      return data.secure_url;
+    } catch (error) {
+      console.error('Error uploading to Cloudinary:', error);
+      throw error;
+    }
+  };
+  
+  const processFiles = useCallback(async (acceptedFiles: File[]) => {
     setError(null);
     
     // Filter for PDF files only
@@ -34,38 +63,50 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete, companyNa
     
     setIsUploading(true);
     
-    // Simulate upload process
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += 5;
-      setUploadProgress(progress);
+    try {
+      const totalFiles = pdfFiles.length;
+      const payslipFiles: PayslipFile[] = [];
       
-      if (progress >= 100) {
-        clearInterval(interval);
+      for (let i = 0; i < pdfFiles.length; i++) {
+        const file = pdfFiles[i];
         
-        // Create PayslipFile objects from the accepted files
-        const payslipFiles: PayslipFile[] = pdfFiles.map(file => ({
+        // Update progress based on current file index
+        setUploadProgress(Math.round((i / totalFiles) * 90));
+        
+        // Upload file to Cloudinary
+        const cloudinaryUrl = await uploadToCloudinary(file);
+        
+        // Create PayslipFile object with Cloudinary URL
+        const payslipFile: PayslipFile = {
           id: uuidv4(),
           name: file.name,
           size: file.size,
           type: file.type,
           uploadedAt: new Date().toISOString(),
-          // In a real app, you would upload to a server and get a URL
-          // Here we're creating an Object URL for demo purposes
-          url: URL.createObjectURL(file)
-        }));
+          url: cloudinaryUrl
+        };
         
-        // Pass the created PayslipFile objects to the parent component
-        onUploadComplete(payslipFiles);
-        
-        // Reset the uploader state
-        setTimeout(() => {
-          setIsUploading(false);
-          setUploadProgress(0);
-        }, 500);
+        payslipFiles.push(payslipFile);
       }
-    }, 100);
-  }, [onUploadComplete]);
+      
+      // Finalize progress
+      setUploadProgress(100);
+      
+      // Pass the created PayslipFile objects to the parent component
+      onUploadComplete(payslipFiles);
+      
+      // Reset the uploader state
+      setTimeout(() => {
+        setIsUploading(false);
+        setUploadProgress(0);
+      }, 500);
+    } catch (error) {
+      console.error('Upload error:', error);
+      setError('An error occurred during upload. Please try again.');
+      setIsUploading(false);
+      toast.error('Failed to upload files. Please try again.');
+    }
+  }, [onUploadComplete, companyName]);
   
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: processFiles,
@@ -99,7 +140,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete, companyNa
           {isUploading ? (
             <>
               <Loader2 className="h-10 w-10 text-primary animate-spin" />
-              <p className="text-sm font-medium">Uploading payslips...</p>
+              <p className="text-sm font-medium">Uploading payslips to Cloudinary...</p>
             </>
           ) : (
             <>
