@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { v4 as uuidv4 } from 'uuid';
@@ -23,26 +24,37 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete, companyNa
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', cloudinaryConfig.uploadPreset);
-    formData.append('api_key', cloudinaryConfig.apiKey);
+    
+    // No need to send API key with unsigned upload preset
+    // formData.append('api_key', cloudinaryConfig.apiKey);
+    
     formData.append('folder', `payslips/${companyName}`);
     
     try {
       // Upload to Cloudinary using their upload API
       const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/upload`;
       console.log('Uploading to:', uploadUrl);
+      console.log('Using upload preset:', cloudinaryConfig.uploadPreset);
       
       const response = await fetch(uploadUrl, {
         method: 'POST',
         body: formData,
       });
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Cloudinary error response:', errorText);
-        throw new Error(`Upload failed with status: ${response.status} - ${errorText}`);
+      const responseText = await response.text();
+      console.log('Cloudinary response:', responseText);
+      
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        throw new Error(`Failed to parse response: ${responseText}`);
       }
       
-      const data = await response.json();
+      if (!response.ok) {
+        console.error('Cloudinary error response:', responseText);
+        throw new Error(`Upload failed with status: ${response.status} - ${responseText}`);
+      }
       
       if (data.error) {
         throw new Error(data.error.message);

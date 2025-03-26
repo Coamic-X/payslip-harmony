@@ -52,7 +52,7 @@ These rules ensure that:
 
 # Cloudinary Setup Instructions
 
-This application uses Cloudinary for image storage. The app is configured with the following settings:
+This application uses Cloudinary for image and PDF storage. The app is configured with the following settings:
 
 - Cloud name: dbpqkfw2x
 - API key: 695637838557724
@@ -63,8 +63,9 @@ To ensure Cloudinary uploads work properly, you'll need to:
 1. Create an upload preset in your Cloudinary Dashboard:
    - Go to Settings > Upload
    - Scroll down to "Upload presets"
-   - Create a new unsigned upload preset named "ml_default" or use an existing one
+   - Create a new unsigned upload preset named "mz92r9oz" or use an existing one
    - If you create a custom preset, update the `uploadPreset` value in `src/config/cloudinary.ts`
+   - Make sure to set the preset to "Unsigned" mode for frontend uploads
 
 2. Configure CORS settings in your Cloudinary account:
    - Go to Settings > Security
@@ -76,7 +77,8 @@ If you want to use your own Cloudinary account instead:
 1. Create a Cloudinary account at [Cloudinary](https://cloudinary.com/)
 2. Go to your Cloudinary Dashboard
 3. Get your Cloud name, API key, and API secret
-4. Update the configuration in `src/config/cloudinary.ts`:
+4. Create an unsigned upload preset from the Settings > Upload section
+5. Update the configuration in `src/config/cloudinary.ts`:
 
 ```typescript
 export const cloudinaryConfig = {
@@ -87,4 +89,4 @@ export const cloudinaryConfig = {
 };
 ```
 
-5. Update the FileUploader component to use your Cloudinary settings
+6. Update your CORS settings to allow uploads from your domain

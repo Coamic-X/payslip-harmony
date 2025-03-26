@@ -16,7 +16,7 @@ export const cloudinaryConfig = {
   cloudName: 'dbpqkfw2x',
   apiKey: '695637838557724',
   apiSecret: 'bYVJdeUK-7JrFtHxq8I9QyVimkg',
-  uploadPreset: 'ml_default', // Default unsigned upload preset
+  uploadPreset: 'mz92r9oz', // Using a different upload preset
 };
 
 export default cloudinary;
